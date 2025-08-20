@@ -62,8 +62,7 @@ st.markdown("""
         border-color: #374151 !important;
     }
     .stMarkdown, .stText, label, .stRadio label, .stSelectbox label { color: #e5e7eb !important; }
-    .quick-links { display: flex; justify-content: center; gap: 0.5rem; margin: 0 0 1rem 0; flex-wrap: wrap; }
-    .quick-links .nav-button { padding: 0.5rem 1rem !important; text-decoration: none !important; display: inline-block; }
+    /* quick-links removed on request */
     @media (max-width: 768px) {
         .nav-buttons { flex-direction: column; align-items: center; }
         .nav-button { width: 100%; max-width: 300px; }
@@ -112,16 +111,6 @@ def _get_page_param() -> str | None:
         return page_param[0] if page_param else None
     return page_param
 
-def render_quick_links():
-    """Render top quick links for primary actions."""
-    st.markdown(
-        '<div class="quick-links">\n'
-        '  <a class="nav-button" href="?page=admin_login">👨‍💼 Admin Login</a>\n'
-        '  <a class="nav-button" href="?page=teacher_login">👩‍🏫 Teacher Login</a>\n'
-        '  <a class="nav-button" href="?page=student_feedback">📝 Give Feedback</a>\n'
-        '</div>',
-        unsafe_allow_html=True,
-    )
 
 def main():
     # Initialize session state
@@ -146,9 +135,7 @@ def main():
     # Header
     st.markdown('<div class="main-header"><h1>📝 Student Feedback System</h1></div>', unsafe_allow_html=True)
 
-    # Quick links only on home page
-    if st.session_state.current_page == 'home':
-        render_quick_links()
+    # Only one navbar (buttons below) per request
 
     # Navigation
     if st.session_state.current_page == 'home':
@@ -185,21 +172,18 @@ def show_home_page():
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Welcome message
-    st.markdown("""
-    <div class="dashboard-card">
-        <h2>Welcome to the Student Feedback System</h2>
-        <p>This system allows students to provide valuable feedback to their teachers. 
-        Teachers can view their feedback, and administrators can manage the system.</p>
-        
-        <h3>How to use:</h3>
-        <ul>
-            <li><strong>Students:</strong> Click "Give Feedback" to submit feedback for your teachers</li>
-            <li><strong>Teachers:</strong> Click "Teacher Login" to view feedback from your students</li>
-            <li><strong>Administrators:</strong> Click "Admin Login" to manage teachers and view all feedback</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    # Welcome message (no HTML)
+    st.subheader("Welcome to the Student Feedback System")
+    st.write(
+        "This system allows students to provide valuable feedback to their teachers. "
+        "Teachers can view their feedback, and administrators can manage the system."
+    )
+    st.markdown("**How to use:**")
+    st.markdown(
+        "- **Students**: Click 'Give Feedback' to submit feedback for your teachers\n"
+        "- **Teachers**: Click 'Teacher Login' to view feedback from your students\n"
+        "- **Administrators**: Click 'Admin Login' to manage teachers and view all feedback"
+    )
 
 def show_admin_login():
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
