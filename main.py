@@ -151,9 +151,15 @@ def main():
     if st.session_state.current_page == 'home':
         show_home_page()
     elif st.session_state.current_page == 'admin_login':
-        show_admin_login()
+        if st.session_state.is_staff:
+            show_admin_login()
+        else:
+            navigate_to('home')
     elif st.session_state.current_page == 'teacher_login':
-        show_teacher_login()
+        if st.session_state.is_staff:
+            show_teacher_login()
+        else:
+            navigate_to('home')
     elif st.session_state.current_page == 'student_feedback':
         show_student_feedback()
     elif st.session_state.current_page == 'admin_dashboard':
@@ -164,17 +170,35 @@ def main():
         show_thank_you_page()
 
 def show_home_page():
+    # Quick links row (links adapt to staff flag)
+    st.markdown('<div class="quick-links">', unsafe_allow_html=True)
+    if st.session_state.is_staff:
+        st.markdown(
+            '<a class="nav-button" href="?page=admin_login&staff=1">👨‍💼 Admin Login</a>'
+            ' <a class="nav-button" href="?page=teacher_login&staff=1">👩‍🏫 Teacher Login</a>'
+            ' <a class="nav-button" href="?page=student_feedback">📝 Give Feedback</a>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<a class="nav-button" href="?page=student_feedback">📝 Give Feedback</a>',
+            unsafe_allow_html=True,
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown('<div class="nav-buttons">', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("👨‍💼 Admin Login", key="admin_nav", use_container_width=True):
-            navigate_to('admin_login')
+        if st.session_state.is_staff:
+            if st.button("👨‍💼 Admin Login", key="admin_nav", use_container_width=True):
+                navigate_to('admin_login')
     
     with col2:
-        if st.button("👩‍🏫 Teacher Login", key="teacher_nav", use_container_width=True):
-            navigate_to('teacher_login')
+        if st.session_state.is_staff:
+            if st.button("👩‍🏫 Teacher Login", key="teacher_nav", use_container_width=True):
+                navigate_to('teacher_login')
     
     with col3:
         if st.button("📝 Give Feedback", key="feedback_nav", use_container_width=True):
