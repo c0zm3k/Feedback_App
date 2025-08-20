@@ -62,7 +62,8 @@ st.markdown("""
         border-color: #374151 !important;
     }
     .stMarkdown, .stText, label, .stRadio label, .stSelectbox label { color: #e5e7eb !important; }
-    /* quick-links removed on request */
+    .quick-links { display: flex; justify-content: center; gap: 0.5rem; margin: 0 0 1rem 0; flex-wrap: wrap; }
+    .quick-links .nav-button { padding: 0.5rem 1rem !important; text-decoration: none !important; display: inline-block; }
     @media (max-width: 768px) {
         .nav-buttons { flex-direction: column; align-items: center; }
         .nav-button { width: 100%; max-width: 300px; }
@@ -111,6 +112,14 @@ def _get_page_param() -> str | None:
         return page_param[0] if page_param else None
     return page_param
 
+def _get_is_staff_flag() -> bool:
+    """Return True if the URL contains staff=1 (supports list values on older versions)."""
+    qp = _get_query_params_safe()
+    raw = qp.get("staff")
+    if isinstance(raw, list):
+        return any(v in ("1", "true", "True") for v in raw)
+    return str(raw).lower() in ("1", "true")
+
 
 def main():
     # Initialize session state
@@ -136,6 +145,7 @@ def main():
     st.markdown('<div class="main-header"><h1>📝 Student Feedback System</h1></div>', unsafe_allow_html=True)
 
     # Only one navbar (buttons below) per request
+    st.session_state.is_staff = _get_is_staff_flag()
 
     # Navigation
     if st.session_state.current_page == 'home':
