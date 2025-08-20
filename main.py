@@ -481,7 +481,7 @@ def show_thank_you_page():
         else:
             st.info("🔽 Try lower!")
 
-    st.caption("Tip: Use the browser's close button or navigate away. You won't be able to return to the feedback form now.")
+    # Removed 'no backward' notice to allow normal browser navigation
 
 if __name__ == "__main__":
     main()
