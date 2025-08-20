@@ -181,8 +181,20 @@ class DatabaseManager:
 
     def generate_unique_student_id(self, teacher_id: int) -> str:
         """Generate a unique student ID for a given teacher.
-        Format: SID{seq:03d} (e.g., SID001), sequence is per-teacher.
+        New format: SID{alpha}{seq:03d} (e.g., SIDA001 for teacher 1, SIDB001 for teacher 2).
+        The alphabetic component is derived from the teacher_id using an Excel-like column scheme
+        (1 -> A, 2 -> B, ..., 26 -> Z, 27 -> AA, etc.). Sequence number is per-teacher.
+        Backward compatible with legacy format SID{seq:03d} when computing the next sequence.
         """
+        def teacher_id_to_alpha(n: int) -> str:
+            # Convert 1-based integer to Excel-like column letters
+            letters = []
+            while n > 0:
+                n, rem = divmod(n - 1, 26)
+                letters.append(chr(ord('A') + rem))
+            return ''.join(reversed(letters))
+
+        alpha = teacher_id_to_alpha(int(teacher_id))
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         # Start sequence at max existing sequence + 1 for stability across deletions
@@ -193,13 +205,21 @@ class DatabaseManager:
         existing_ids = [row[0] for row in cursor.fetchall() if row and row[0]]
         existing_nums = []
         for sid in existing_ids:
-            # Parse numbers from format SID###
-            if isinstance(sid, str) and sid.startswith("SID") and sid[3:].isdigit():
+            if not isinstance(sid, str):
+                continue
+            # Prefer new format: SID{alpha}{digits}
+            if sid.startswith("SID" + alpha):
+                tail = sid[3 + len(alpha):]
+                if tail.isdigit():
+                    existing_nums.append(int(tail))
+                    continue
+            # Fallback: legacy format SID{digits}
+            if sid.startswith("SID") and sid[3:].isdigit():
                 existing_nums.append(int(sid[3:]))
         seq = (max(existing_nums) + 1) if existing_nums else 1
         # Loop until we find an unused id (handles rare collisions)
         while True:
-            candidate = f"SID{int(seq):03d}"
+            candidate = f"SID{alpha}{int(seq):03d}"
             cursor.execute(
                 "SELECT 1 FROM students WHERE teacher_id = ? AND student_id = ?",
                 (teacher_id, candidate),

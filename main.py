@@ -146,8 +146,9 @@ def main():
     # Header
     st.markdown('<div class="main-header"><h1>📝 Student Feedback System</h1></div>', unsafe_allow_html=True)
 
-    # Global quick links
-    render_quick_links()
+    # Quick links only on home page
+    if st.session_state.current_page == 'home':
+        render_quick_links()
 
     # Navigation
     if st.session_state.current_page == 'home':
