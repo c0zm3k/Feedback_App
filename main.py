@@ -62,6 +62,8 @@ st.markdown("""
         border-color: #374151 !important;
     }
     .stMarkdown, .stText, label, .stRadio label, .stSelectbox label { color: #e5e7eb !important; }
+    .quick-links { display: flex; justify-content: center; gap: 0.5rem; margin: 0 0 1rem 0; flex-wrap: wrap; }
+    .quick-links .nav-button { padding: 0.5rem 1rem !important; text-decoration: none !important; display: inline-block; }
     @media (max-width: 768px) {
         .nav-buttons { flex-direction: column; align-items: center; }
         .nav-button { width: 100%; max-width: 300px; }
@@ -69,6 +71,49 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+def _get_query_params_safe():
+    """Return query params as a plain dict, supporting both stable and experimental APIs."""
+    try:
+        # Newer Streamlit versions
+        return dict(st.query_params)
+    except Exception:
+        try:
+            # Older Streamlit 1.x
+            return st.experimental_get_query_params()
+        except Exception:
+            return {}
+
+def _set_query_params_safe(**params):
+    """Set query params, supporting both stable and experimental APIs."""
+    try:
+        st.query_params.clear()
+        for k, v in params.items():
+            st.query_params[k] = v
+    except Exception:
+        try:
+            st.experimental_set_query_params(**params)
+        except Exception:
+            pass
+
+def navigate_to(page: str):
+    """Set the target page, sync it to the URL, and rerun for an immediate redirect."""
+    st.session_state.current_page = page
+    qp = _get_query_params_safe()
+    if qp.get("page") != page:
+        _set_query_params_safe(page=page)
+    st.rerun()
+
+def render_quick_links():
+    """Render top quick links for primary actions."""
+    st.markdown(
+        '<div class="quick-links">\n'
+        '  <a class="nav-button" href="?page=admin_login">👨‍💼 Admin Login</a>\n'
+        '  <a class="nav-button" href="?page=teacher_login">👩‍🏫 Teacher Login</a>\n'
+        '  <a class="nav-button" href="?page=student_feedback">📝 Give Feedback</a>\n'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 def main():
     # Initialize session state
@@ -81,8 +126,20 @@ def main():
     if 'current_teacher' not in st.session_state:
         st.session_state.current_teacher = None
 
+    # Read desired page from URL if present
+    page_from_url = _get_query_params_safe().get("page")
+    allowed_pages = {
+        'home', 'admin_login', 'teacher_login', 'student_feedback',
+        'admin_dashboard', 'teacher_dashboard', 'thank_you'
+    }
+    if page_from_url and page_from_url in allowed_pages and page_from_url != st.session_state.current_page:
+        st.session_state.current_page = page_from_url
+
     # Header
     st.markdown('<div class="main-header"><h1>📝 Student Feedback System</h1></div>', unsafe_allow_html=True)
+
+    # Global quick links
+    render_quick_links()
 
     # Navigation
     if st.session_state.current_page == 'home':
@@ -107,18 +164,15 @@ def show_home_page():
     
     with col1:
         if st.button("👨‍💼 Admin Login", key="admin_nav", use_container_width=True):
-            st.session_state.current_page = 'admin_login'
-            st.rerun()
+            navigate_to('admin_login')
     
     with col2:
         if st.button("👩‍🏫 Teacher Login", key="teacher_nav", use_container_width=True):
-            st.session_state.current_page = 'teacher_login'
-            st.rerun()
+            navigate_to('teacher_login')
     
     with col3:
         if st.button("📝 Give Feedback", key="feedback_nav", use_container_width=True):
-            st.session_state.current_page = 'student_feedback'
-            st.rerun()
+            navigate_to('student_feedback')
     
     st.markdown('</div>', unsafe_allow_html=True)
     
@@ -150,15 +204,13 @@ def show_admin_login():
         if submit:
             if db.verify_admin_login(username, password):
                 st.session_state.admin_logged_in = True
-                st.session_state.current_page = 'admin_dashboard'
                 st.success("Login successful! Redirecting to admin dashboard...")
-                st.rerun()
+                navigate_to('admin_dashboard')
             else:
                 st.error("Invalid username or password!")
     
     if st.button("← Back to Home"):
-        st.session_state.current_page = 'home'
-        st.rerun()
+        navigate_to('home')
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -176,15 +228,13 @@ def show_teacher_login():
             if teacher:
                 st.session_state.teacher_logged_in = True
                 st.session_state.current_teacher = teacher
-                st.session_state.current_page = 'teacher_dashboard'
                 st.success("Login successful! Redirecting to teacher dashboard...")
-                st.rerun()
+                navigate_to('teacher_dashboard')
             else:
                 st.error("Invalid username or password!")
     
     if st.button("← Back to Home"):
-        st.session_state.current_page = 'home'
-        st.rerun()
+        navigate_to('home')
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -198,8 +248,7 @@ def show_student_feedback():
     if not teachers:
         st.warning("No teachers available. Please contact the administrator.")
         if st.button("← Back to Home"):
-            st.session_state.current_page = 'home'
-            st.rerun()
+            navigate_to('home')
         return
     
     with st.form("feedback_form"):
@@ -255,15 +304,13 @@ def show_student_feedback():
                     ok = db.submit_feedback(teacher_id, student_id.strip(), feedback_text.strip())
                     if ok:
                         st.success(f"Thank you, {student_row[3]}! Redirecting to a fun thank-you page...")
-                        st.session_state.current_page = 'thank_you'
                         st.session_state.thank_you_name = student_row[3]
-                        st.rerun()
+                        navigate_to('thank_you')
                     else:
                         st.error("Could not submit feedback. Please try again.")
     
     if st.button("← Back to Home"):
-        st.session_state.current_page = 'home'
-        st.rerun()
+        navigate_to('home')
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -273,8 +320,7 @@ def show_admin_dashboard():
     # Logout button
     if st.button("🚪 Logout"):
         st.session_state.admin_logged_in = False
-        st.session_state.current_page = 'home'
-        st.rerun()
+        navigate_to('home')
     
     # Add new teacher section
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
@@ -340,9 +386,7 @@ def show_admin_dashboard():
 
 def show_teacher_dashboard():
     if not st.session_state.current_teacher:
-        st.error("No teacher logged in!")
-        st.session_state.current_page = 'home'
-        st.rerun()
+        navigate_to('home')
         return
     
     teacher = st.session_state.current_teacher
@@ -352,8 +396,7 @@ def show_teacher_dashboard():
     if st.button("🚪 Logout"):
         st.session_state.teacher_logged_in = False
         st.session_state.current_teacher = None
-        st.session_state.current_page = 'home'
-        st.rerun()
+        navigate_to('home')
     
     # Teacher info
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
