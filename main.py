@@ -104,6 +104,14 @@ def navigate_to(page: str):
         _set_query_params_safe(page=page)
     st.rerun()
 
+def _get_page_param() -> str | None:
+    """Return the 'page' query parameter as a single string when present."""
+    qp = _get_query_params_safe()
+    page_param = qp.get("page")
+    if isinstance(page_param, list):
+        return page_param[0] if page_param else None
+    return page_param
+
 def render_quick_links():
     """Render top quick links for primary actions."""
     st.markdown(
@@ -127,7 +135,7 @@ def main():
         st.session_state.current_teacher = None
 
     # Read desired page from URL if present
-    page_from_url = _get_query_params_safe().get("page")
+    page_from_url = _get_page_param()
     allowed_pages = {
         'home', 'admin_login', 'teacher_login', 'student_feedback',
         'admin_dashboard', 'teacher_dashboard', 'thank_you'
